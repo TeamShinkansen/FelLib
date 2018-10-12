@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("FelLib")]
+[assembly: AssemblyTitle("FelCli")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("FelLib")]
-[assembly: AssemblyCopyright("Copyright ©  2018")]
+[assembly: AssemblyProduct("FelCli")]
+[assembly: AssemblyCopyright("Copyright 2018 Daniel Radtke <DanTheMan827>")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("3cb5e644-ab96-478c-8d88-093c48781174")]
+[assembly: Guid("e1fee142-92dc-4130-9fcc-876cd44c6ec2")]
 
 // Version information for an assembly consists of the following four values:
 //

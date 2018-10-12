@@ -5,6 +5,13 @@ VisualStudioVersion = 15.0.27703.2035
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FelLib", "FelLib\FelLib.csproj", "{3CB5E644-AB96-478C-8D88-093C48781174}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FelCli", "FelCli\FelCli.csproj", "{E1FEE142-92DC-4130-9FCC-876CD44C6EC2}"
+	ProjectSection(ProjectDependencies) = postProject
+		{921AC06A-86A4-46A9-B153-47A73552A6F1} = {921AC06A-86A4-46A9-B153-47A73552A6F1}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FelHelpers", "FelHelpers\FelHelpers.csproj", "{921AC06A-86A4-46A9-B153-47A73552A6F1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +22,14 @@ Global
 		{3CB5E644-AB96-478C-8D88-093C48781174}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3CB5E644-AB96-478C-8D88-093C48781174}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3CB5E644-AB96-478C-8D88-093C48781174}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E1FEE142-92DC-4130-9FCC-876CD44C6EC2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E1FEE142-92DC-4130-9FCC-876CD44C6EC2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E1FEE142-92DC-4130-9FCC-876CD44C6EC2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E1FEE142-92DC-4130-9FCC-876CD44C6EC2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{921AC06A-86A4-46A9-B153-47A73552A6F1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{921AC06A-86A4-46A9-B153-47A73552A6F1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{921AC06A-86A4-46A9-B153-47A73552A6F1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{921AC06A-86A4-46A9-B153-47A73552A6F1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
