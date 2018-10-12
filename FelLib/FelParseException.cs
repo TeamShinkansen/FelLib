@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace com.clusterrr.FelLib
+namespace FelLib
 {
     public class FelParseException : Exception
     {
