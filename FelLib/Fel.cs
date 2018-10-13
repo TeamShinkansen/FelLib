@@ -1,4 +1,4 @@
-﻿using LibUsbDotNet;
+using LibUsbDotNet;
 using LibUsbDotNet.Main;
 using System;
 using System.Collections.Generic;
@@ -23,7 +23,7 @@ namespace FelLib
         const int ReadTimeout = 1000;
         const int WriteTimeout = 1000;
         public const int MaxBulkSize = 0x10000;
-        UInt16 vid, pid;
+        UInt16 vid = 0x1F3A, pid = 0xEFE8;
         bool DramInitDone = false;
 
         int cmdOffset = -1;
@@ -61,23 +61,20 @@ namespace FelLib
 
         public static bool DeviceExists(UInt16 vid = 0x1F3A, UInt16 pid = 0xEFE8)
         {
-            var fel = new Fel();
             try
             {
-                if (fel.Open(vid, pid))
+                var devices = UsbDevice.AllDevices;
+                foreach (UsbRegistry regDevice in devices)
                 {
-                    Debug.WriteLine("Device detection successful");
-                    return true;
-                }
-                else
-                {
-                    return false;
+                    if (regDevice.Vid == vid && regDevice.Pid == pid)
+                    {
+                        return true;
+                    }
                 }
             }
-            finally
-            {
-                fel.Close();
-            }
+            catch(Exception ex) { }
+
+            return false;
         }
 
         public bool Open(UInt16 vid = 0x1F3A, UInt16 pid = 0xEFE8)
@@ -87,25 +84,24 @@ namespace FelLib
                 this.vid = vid;
                 this.pid = pid;
                 Close();
+
+                UsbDeviceFinder MyUsbFinder = new UsbDeviceFinder(vid, pid);
                 //Debug.WriteLine("Trying to open device...");
-                var devices = UsbDevice.AllDevices;
-                device = null;
-                foreach (UsbRegistry regDevice in devices)
-                {
-                    if (regDevice.Vid == vid && regDevice.Pid == pid)
-                    {
-                        regDevice.Open(out device);
-                        break;
-                    }
-                }
+                device = UsbDevice.OpenUsbDevice(MyUsbFinder);
+
+                // If the device is open and ready
                 if (device == null)
                 {
-#if VERY_DEBUG
-                Debug.WriteLine("Device with such VID and PID not found");
-#endif
+                    #if VERY_DEBUG
+                    Debug.WriteLine("Device with such VID and PID not found");
+                    #endif
                     return false;
                 }
 
+                // If this is a "whole" usb device (libusb-win32, linux libusb)
+                // it will have an IUsbDevice interface. If not (WinUSB) the 
+                // variable will be null indicating this is an interface of a 
+                // device.
                 IUsbDevice wholeUsbDevice = device as IUsbDevice;
                 if (!ReferenceEquals(wholeUsbDevice, null))
                 {
@@ -167,15 +163,12 @@ namespace FelLib
         }
         public void Close()
         {
-            if (device != null)
-                device.Close();
-            device = null;
-            if (epReader != null)
-                epReader.Dispose();
+            epReader?.Dispose();
             epReader = null;
-            if (epWriter != null)
-                epWriter.Dispose();
+            epWriter?.Dispose();
             epWriter = null;
+            device?.Close();
+            device = null;
         }
 
         private void WriteToUSB(byte[] buffer)
