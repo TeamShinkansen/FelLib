@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
+    <AssemblyName>fel</AssemblyName>
+    <Authors>Daniel Radtke</Authors>
+    <Company />
+    <Product>FelCli</Product>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommandLineParser" Version="2.4.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FelHelpers\FelHelpers.csproj" />
+    <ProjectReference Include="..\FelLib\FelLib.csproj" />
+  </ItemGroup>
+
+</Project>

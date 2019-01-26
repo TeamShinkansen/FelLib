@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net45;net46;net47;netstandard2.0;netstandard2.0;netcoreapp2.0;netcoreapp2.1</TargetFrameworks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FelLib\FelLib.csproj" />
+  </ItemGroup>
+
+</Project>

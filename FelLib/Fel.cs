@@ -2,7 +2,6 @@ using LibUsbDotNet;
 using LibUsbDotNet.Main;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -11,6 +10,9 @@ namespace FelLib
 {
     public class Fel : IDisposable
     {
+        public delegate void WriteLineHandler(string message);
+        public event WriteLineHandler WriteLine;
+
         public byte[] Fes1Bin;
         byte[] uBootBin;
 
@@ -86,14 +88,14 @@ namespace FelLib
                 Close();
 
                 UsbDeviceFinder MyUsbFinder = new UsbDeviceFinder(vid, pid);
-                //Debug.WriteLine("Trying to open device...");
+                //WriteLine?.Invoke("Trying to open device...");
                 device = UsbDevice.OpenUsbDevice(MyUsbFinder);
 
                 // If the device is open and ready
                 if (device == null)
                 {
                     #if VERY_DEBUG
-                    Debug.WriteLine("Device with such VID and PID not found");
+                    WriteLine?.Invoke("Device with such VID and PID not found");
                     #endif
                     return false;
                 }
@@ -119,7 +121,7 @@ namespace FelLib
                 int outEndp = -1;
                 int inMax = 0;
                 int outMax = 0;
-                Debug.WriteLine("Checking USB endpoints...");
+                WriteLine?.Invoke("Checking USB endpoints...");
                 foreach (var config in device.Configs)
                     foreach (var @interface in config.InterfaceInfoList)
                         foreach (var endp in @interface.EndpointInfoList)
@@ -128,36 +130,36 @@ namespace FelLib
                             {
                                 inEndp = endp.Descriptor.EndpointID;
                                 inMax = endp.Descriptor.MaxPacketSize;
-                                Debug.WriteLine("IN endpoint found: " + inEndp);
-                                Debug.WriteLine("IN endpoint maxsize: " + inMax);
+                                WriteLine?.Invoke("IN endpoint found: " + inEndp);
+                                WriteLine?.Invoke("IN endpoint maxsize: " + inMax);
                             }
                             else
                             {
                                 outEndp = endp.Descriptor.EndpointID;
                                 outMax = endp.Descriptor.MaxPacketSize;
-                                Debug.WriteLine("OUT endpoint found: " + outEndp);
-                                Debug.WriteLine("OUT endpoint maxsize: " + outMax);
+                                WriteLine?.Invoke("OUT endpoint found: " + outEndp);
+                                WriteLine?.Invoke("OUT endpoint maxsize: " + outMax);
                             }
                         }
                 if (inEndp != 0x82 || outEndp != 0x01)
                 {
-                    Debug.WriteLine("Uncorrect FEL device/mode");
+                    WriteLine?.Invoke("Uncorrect FEL device/mode");
                     return false;
                 }
                 epReader = device.OpenEndpointReader((ReadEndpointID)inEndp, 65536);
                 epWriter = device.OpenEndpointWriter((WriteEndpointID)outEndp);
 
-                Debug.WriteLine("Trying to verify device");
+                WriteLine?.Invoke("Trying to verify device");
                 if (VerifyDevice().Board != 0x00166700)
                 {
-                    Debug.WriteLine("Invalid board ID: " + VerifyDevice().Board);
+                    WriteLine?.Invoke("Invalid board ID: " + VerifyDevice().Board);
                     return false;
                 }
                 return true;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Error: " + ex.Message + ex.StackTrace);
+                WriteLine?.Invoke("Error: " + ex.Message + ex.StackTrace);
                 return false;
             }
         }
@@ -174,9 +176,9 @@ namespace FelLib
         private void WriteToUSB(byte[] buffer)
         {
 #if VERY_DEBUG
-            Debug.WriteLine("->[FEL] " + BitConverter.ToString(buffer));
+            WriteLine?.Invoke("->[FEL] " + BitConverter.ToString(buffer));
 #endif
-            Debug.WriteLine(string.Format("-> {0} bytes", buffer.Length));
+            WriteLine?.Invoke(string.Format("-> {0} bytes", buffer.Length));
             int pos = 0;
             int l;
             while (pos < buffer.Length)
@@ -196,9 +198,9 @@ namespace FelLib
             if (result != ErrorCode.Ok)
                 throw new Exception("USB read error: " + result.ToString());
 #if VERY_DEBUG
-            Debug.WriteLine("<-[FEL] " + BitConverter.ToString(buffer));
+            WriteLine?.Invoke("<-[FEL] " + BitConverter.ToString(buffer));
 #endif
-            Debug.WriteLine(string.Format("<- {0} bytes", length));
+            WriteLine?.Invoke(string.Format("<- {0} bytes", length));
             return l;
         }
         private byte[] ReadFromUSB(UInt32 length)
