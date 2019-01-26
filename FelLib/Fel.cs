@@ -72,7 +72,7 @@ namespace FelLib
                     }
                 }
             }
-            catch(Exception ex) { }
+            catch (Exception) { }
 
             return false;
         }
