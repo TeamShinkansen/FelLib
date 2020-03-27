@@ -527,7 +527,7 @@ namespace FelLib
             return SendBurnHandshake(0) == "usb_update_probe_ok";
         }
 
-        public bool BurnExit()
+        public bool UsbUpdateExit()
         {
             return SendBurnHandshake(1) == "usb_update_exit";
         }
