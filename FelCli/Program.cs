@@ -68,6 +68,10 @@ namespace FelCli
         public bool noreturn { get; set; }
     }
 
+    [Verb("update-enter-fel", HelpText = "Enters FEL mode from U-Boot burn mode.")]
+    class UpdateEnterFelCommandOptions
+    { }
+
     public class Program
     {
         public static string ExeLocation
@@ -98,7 +102,7 @@ namespace FelCli
             {
 
 
-                var result = CommandLine.Parser.Default.ParseArguments<MembootOptions, FlashBootOptions, FlashUbootOptions, ReadNandOptions, FlashNandOptions, RunUbootCommandOptions>(args).MapResult(
+                var result = CommandLine.Parser.Default.ParseArguments<MembootOptions, FlashBootOptions, FlashUbootOptions, ReadNandOptions, FlashNandOptions, RunUbootCommandOptions, UpdateEnterFelCommandOptions>(args).MapResult(
                     (MembootOptions opts) =>
                     {
                         if (opts.Fes.Exists && opts.Uboot.Exists && opts.BootImage.Exists)
@@ -181,6 +185,33 @@ namespace FelCli
                             return 0;
                         }
                         return 1;
+                    },
+                    (UpdateEnterFelCommandOptions opts) =>
+                    {
+                        FelDevice().Wait();
+                        try
+                        {
+                            using (FelLib.Fel fel = new FelLib.Fel())
+                            {
+                                fel.WriteLine += Console.WriteLine;
+                                if (!fel.Open(isFel: false))
+                                {
+                                    throw new Exception("USB Device Not Found");
+                                }
+
+
+                                if (!fel.UsbUpdateProbe())
+                                    throw new Exception("Failed to handshake with burn mode");
+                                if (!fel.UsbUpdateEnterFel())
+                                    throw new Exception("Failed to enter FEL");
+                            }
+                        }
+                        catch
+                        {
+                            return 1;
+                        }
+
+                        return 0;
                     },
                     errs => 1
                 );

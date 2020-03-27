@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Runtime.InteropServices;
+using FelLib.UMassBbb;
 
 namespace FelLib
 {
@@ -27,6 +29,7 @@ namespace FelLib
         public const int MaxBulkSize = 0x10000;
         UInt16 vid = 0x1F3A, pid = 0xEFE8;
         bool DramInitDone = false;
+        bool isFel;
 
         int cmdOffset = -1;
         public const UInt32 fes1_base_m = 0x2000;
@@ -79,7 +82,7 @@ namespace FelLib
             return false;
         }
 
-        public bool Open(UInt16 vid = 0x1F3A, UInt16 pid = 0xEFE8)
+        public bool Open(UInt16 vid = 0x1F3A, UInt16 pid = 0xEFE8, bool isFel = true)
         {
             try
             {
@@ -141,21 +144,9 @@ namespace FelLib
                                 WriteLine?.Invoke("OUT endpoint maxsize: " + outMax);
                             }
                         }
-                if (inEndp != 0x82 || outEndp != 0x01)
-                {
-                    WriteLine?.Invoke("Uncorrect FEL device/mode");
-                    return false;
-                }
-                epReader = device.OpenEndpointReader((ReadEndpointID)inEndp, 65536);
-                epWriter = device.OpenEndpointWriter((WriteEndpointID)outEndp);
 
-                WriteLine?.Invoke("Trying to verify device");
-                if (VerifyDevice().Board != 0x00166700)
-                {
-                    WriteLine?.Invoke("Invalid board ID: " + VerifyDevice().Board);
-                    return false;
-                }
-                return true;
+                this.isFel = isFel;
+                return isFel ? OpenFel(inEndp, outEndp) : OpenBurn(inEndp, outEndp);
             }
             catch (Exception ex)
             {
@@ -163,6 +154,46 @@ namespace FelLib
                 return false;
             }
         }
+
+        bool OpenFel(int inEndp, int outEndp)
+        {
+            if (inEndp != 0x82 || outEndp != 0x01)
+            {
+                WriteLine?.Invoke("Uncorrect FEL device/mode");
+                return false;
+            }
+
+            OpenEndpoints(inEndp, outEndp);
+
+            WriteLine?.Invoke("Trying to verify device");
+            if (VerifyDevice().Board != 0x00166700)
+            {
+                WriteLine?.Invoke("Invalid board ID: " + VerifyDevice().Board);
+                return false;
+            }
+
+            return true;
+        }
+
+        bool OpenBurn(int inEndp, int outEndp)
+        {
+            if (inEndp != 0x81 || outEndp != 0x02)
+            {
+                WriteLine?.Invoke("Device not in burn mode");
+                return false;
+            }
+
+            OpenEndpoints(inEndp, outEndp);
+
+            return true;
+        }
+
+        void OpenEndpoints(int inEndp, int outEndp)
+        {
+            epReader = device.OpenEndpointReader((ReadEndpointID)inEndp, 65536);
+            epWriter = device.OpenEndpointWriter((WriteEndpointID)outEndp);
+        }
+
         public void Close()
         {
             epReader?.Dispose();
@@ -216,6 +247,7 @@ namespace FelLib
 
         private void FelWrite(byte[] buffer)
         {
+            if (!isFel) throw new InvalidOperationException("Not operating in FEL mode");
             var req = new AWUSBRequest();
             req.Cmd = AWUSBRequest.RequestType.AW_USB_WRITE;
             req.Len = (uint)buffer.Length;
@@ -227,6 +259,7 @@ namespace FelLib
 
         private byte[] FelRead(UInt32 length)
         {
+            if (!isFel) throw new InvalidOperationException("Not operating in FEL mode");
             var req = new AWUSBRequest();
             req.Cmd = AWUSBRequest.RequestType.AW_USB_READ;
             req.Len = length;
@@ -428,6 +461,80 @@ namespace FelLib
                 }
                 else break;
             }
+        }
+
+        void EnsureOpen()
+        {
+            if (device == null || epReader == null || epWriter == null)
+                throw new InvalidOperationException("Not connected");
+        }
+
+        void EnsureBurnMode()
+        {
+            EnsureOpen();
+            if (isFel) throw new InvalidOperationException("Not operating in burn mode");
+        }
+
+        // https://stackoverflow.com/a/3278956
+        byte[] StructToBytes<T>(T str) where T: struct
+        {
+            int size = Marshal.SizeOf(str);
+            byte[] arr = new byte[size];
+
+            IntPtr ptr = Marshal.AllocHGlobal(size);
+            Marshal.StructureToPtr(str, ptr, false);
+            Marshal.Copy(ptr, arr, 0, size);
+            Marshal.DestroyStructure(ptr, typeof(T));
+            Marshal.FreeHGlobal(ptr);
+            return arr;
+        }
+
+        T BytesToStruct<T>(byte[] arr) where T: struct
+        {
+            int size = Marshal.SizeOf(typeof(T));
+            IntPtr ptr = Marshal.AllocHGlobal(size);
+            Marshal.Copy(arr, 0, ptr, size);
+            T str = (T)Marshal.PtrToStructure(ptr, typeof(T));
+            Marshal.FreeHGlobal(ptr);
+            return str;
+        }
+
+        string SendBurnHandshake(byte op)
+        {
+            EnsureBurnMode();
+            CommandBlockWrapper cbw = CommandBlockWrapper.Create(true);
+            cbw.dCBWTag = 0x4b485348 + (uint)op;
+            cbw.dCBWDataTransferLength = 32;
+            cbw.bCBWCBLength = 2;
+            cbw.CBWCB[0] = 0xf8;
+            cbw.CBWCB[1] = op;
+            WriteToUSB(StructToBytes(cbw));
+
+            byte[] handshakeResponse = ReadFromUSB(32);
+
+            byte[] cswBytes = ReadFromUSB((uint)Marshal.SizeOf(typeof(CommandStatusWrapper)));
+            CommandStatusWrapper csw = BytesToStruct<CommandStatusWrapper>(cswBytes);
+
+            if (csw.dCSWSignature != CommandStatusWrapper.SIGNATURE) return null;
+            if (csw.dCSWTag != cbw.dCBWTag) return null;
+            if (csw.bCSWStatus != 0) return null;
+
+            return Encoding.ASCII.GetString(handshakeResponse).TrimEnd('\0');
+        }
+
+        public bool UsbUpdateProbe()
+        {
+            return SendBurnHandshake(0) == "usb_update_probe_ok";
+        }
+
+        public bool BurnExit()
+        {
+            return SendBurnHandshake(1) == "usb_update_exit";
+        }
+
+        public bool UsbUpdateEnterFel()
+        {
+            return SendBurnHandshake(2) == "usb_update_efex";
         }
 
         public void Dispose()
