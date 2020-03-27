@@ -199,15 +199,15 @@ namespace FelCli
                                     throw new Exception("USB Device Not Found");
                                 }
 
-
                                 if (!fel.UsbUpdateProbe())
                                     throw new Exception("Failed to handshake with burn mode");
                                 if (!fel.UsbUpdateEnterFel())
                                     throw new Exception("Failed to enter FEL");
                             }
                         }
-                        catch
+                        catch (Exception ex)
                         {
+                            Console.WriteLine(ex.Message);
                             return 1;
                         }
 
